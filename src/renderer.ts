@@ -22,6 +22,7 @@ class WallpaperApp {
   private historyList: HTMLElement;
   private regionSelect: HTMLSelectElement;
   private showNotifications: HTMLInputElement;
+  private autoStart: HTMLInputElement;
   private scheduleTimesDiv: HTMLElement;
   private saveSettingsBtn: HTMLElement;
   private cancelSettingsBtn: HTMLElement;
@@ -38,6 +39,7 @@ class WallpaperApp {
     this.historyList = document.getElementById('history-list')!;
     this.regionSelect = document.getElementById('region-select') as HTMLSelectElement;
     this.showNotifications = document.getElementById('show-notifications') as HTMLInputElement;
+    this.autoStart = document.getElementById('auto-start') as HTMLInputElement;
     this.scheduleTimesDiv = document.getElementById('schedule-times')!;
     this.saveSettingsBtn = document.getElementById('save-settings-btn')!;
     this.cancelSettingsBtn = document.getElementById('cancel-settings-btn')!;
@@ -67,6 +69,7 @@ class WallpaperApp {
       // Populate settings form
       this.regionSelect.value = this.currentConfig.region;
       this.showNotifications.checked = this.currentConfig.showNotifications;
+      this.autoStart.checked = this.currentConfig.autoStart;
 
       // Populate schedule times
       this.scheduleTimesDiv.innerHTML = '';
@@ -189,7 +192,7 @@ class WallpaperApp {
         region: this.regionSelect.value,
         scheduleTimes: validTimes.sort(),
         showNotifications: this.showNotifications.checked,
-        autoStart: true // Always true for now
+        autoStart: this.autoStart.checked
       };
 
       await window.electronAPI.updateConfig(newConfig);

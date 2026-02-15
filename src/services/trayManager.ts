@@ -11,8 +11,19 @@ class TrayManager {
    */
   create() {
     try {
-      // 使用原生图标创建托盘
-      const iconPath = path.join(__dirname, '../../assets/icon.png');
+      // 根据环境选择正确的图标路径
+      // 开发环境：从项目根目录的 assets/ 加载
+      // 生产环境：从 resources/assets/ 加载（通过 extraResource 复制）
+      const iconPath = process.env.NODE_ENV === 'development'
+        ? path.join(__dirname, '../../assets/icon.png')
+        : path.join(process.resourcesPath, 'assets', 'icon.png');
+
+      logger.info(`Loading tray icon from: ${iconPath}`);
+      logger.info(`__dirname: ${__dirname}`);
+      logger.info(`NODE_ENV: ${process.env.NODE_ENV}`);
+      if (process.env.NODE_ENV !== 'development') {
+        logger.info(`process.resourcesPath: ${process.resourcesPath}`);
+      }
 
       this.tray = new Tray(iconPath);
       this.tray.setToolTip('Bing Wallpaper Switcher');

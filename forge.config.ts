@@ -9,7 +9,12 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 const config: ForgeConfig = {
   packagerConfig: {
+    // 启用 ASAR 打包（标准配置，无需解包原生模块）
     asar: true,
+    // 将 assets 目录复制到 resources/（app.asar 外部）
+    extraResource: [
+      './assets'
+    ],
   },
   rebuildConfig: {},
   makers: [

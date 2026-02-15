@@ -179,6 +179,15 @@ app.on('ready', async () => {
     logger.info(`Config: ${JSON.stringify(configManager.getAll())}`);
     console.log('Config loaded');
 
+    // 0. Setup auto-start (开机启动)
+    const autoStartEnabled = configManager.get('autoStart');
+    app.setLoginItemSettings({
+      openAtLogin: autoStartEnabled,
+      openAsHidden: true,  // 启动时隐藏到托盘，不显示窗口
+      name: 'Bing Wallpaper Switcher'
+    });
+    logger.info(`Auto-start ${autoStartEnabled ? 'enabled' : 'disabled'}`);
+
     // 1. Run initial download on startup
     await downloadAndSetWallpaper();
 
@@ -229,6 +238,16 @@ ipcMain.handle('update-config', async (_, config) => {
   if (config.scheduleTimes) {
     scheduler.restartJobs();
     logger.info('Scheduler restarted with new schedule');
+  }
+
+  // Update auto-start setting if changed
+  if (config.autoStart !== undefined) {
+    app.setLoginItemSettings({
+      openAtLogin: config.autoStart,
+      openAsHidden: true,
+      name: 'Bing Wallpaper Switcher'
+    });
+    logger.info(`Auto-start ${config.autoStart ? 'enabled' : 'disabled'}`);
   }
 
   return { success: true };
