@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(powershell -Command \"\\(Get-Item ''C:\\\\Users\\\\15533\\\\AppData\\\\Roaming\\\\electron\\\\logs\\\\app.log''\\).LastWriteTime.ToString\\(''yyyy-MM-dd HH:mm:ss''\\)\")",
+      "Bash(findstr:*)"
+    ],
+    "additionalDirectories": [
+      "D:\\_code\\bing-wallpaper",
+      "D:\\_code\\wallpaper-switcher"
+    ]
+  }
+}

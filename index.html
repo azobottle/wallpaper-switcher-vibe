@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bing Wallpaper Switcher</title>
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>Bing Wallpaper Switcher</h1>
+        <p>Automatic Bing wallpaper downloader and switcher</p>
+      </header>
+
+      <main>
+        <section class="current-wallpaper">
+          <h2>Current Wallpaper</h2>
+          <div id="current-wallpaper-info">Loading...</div>
+        </section>
+
+        <section class="controls">
+          <button id="refresh-btn">Refresh Now</button>
+          <button id="settings-toggle-btn">Settings</button>
+        </section>
+
+        <section class="history">
+          <h2>Wallpaper History (Last 7 Days)</h2>
+          <div id="history-list">Loading...</div>
+        </section>
+
+        <section id="settings-panel" class="settings-panel hidden">
+          <h2>Settings</h2>
+
+          <div class="setting">
+            <label for="region-select">Region:</label>
+            <select id="region-select">
+              <option value="en-US">English (United States)</option>
+              <option value="zh-CN">Chinese (China)</option>
+              <option value="ja-JP">Japanese (Japan)</option>
+              <option value="en-IN">English (India)</option>
+              <option value="pt-BR">Portuguese (Brazil)</option>
+              <option value="fr-FR">French (France)</option>
+              <option value="de-DE">German (Germany)</option>
+            </select>
+          </div>
+
+          <div class="setting">
+            <label for="schedule-input">Schedule Times:</label>
+            <div id="schedule-times"></div>
+            <button id="add-schedule-btn">Add Time</button>
+          </div>
+
+          <div class="setting">
+            <label>
+              <input type="checkbox" id="show-notifications" />
+              Show Notifications
+            </label>
+          </div>
+
+          <div class="setting-buttons">
+            <button id="save-settings-btn">Save Settings</button>
+            <button id="cancel-settings-btn">Cancel</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/src/renderer.ts"></script>
+  </body>
+</html>
