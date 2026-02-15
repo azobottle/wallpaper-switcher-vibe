@@ -5,7 +5,6 @@ import { configManager } from '../utils/config';
 
 class TrayManager {
   private tray: Tray | null = null;
-  private mainWindow: BrowserWindow | null = null;
 
   /**
    * Create system tray icon
@@ -71,32 +70,8 @@ class TrayManager {
    * Show main window
    */
   private showWindow(): void {
-    if (this.mainWindow) {
-      this.mainWindow.show();
-      this.mainWindow.focus();
-      return;
-    }
-
-    // Create window if it doesn't exist
-    this.mainWindow = new BrowserWindow({
-      width: 800,
-      height: 600,
-      show: false,
-      autoHideMenuBar: true,
-      webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-        contextIsolation: true,
-        nodeIntegration: false
-      }
-    });
-
-    this.mainWindow.on('ready-to-show', () => {
-      this.mainWindow?.show();
-    });
-
-    this.mainWindow.on('closed', () => {
-      this.mainWindow = null;
-    });
+    // Emit event for main process to handle
+    app.emit('show-window');
   }
 
   /**

@@ -32,6 +32,9 @@ console.log('[DEBUG 11] logger imported');
 
 console.log('[DEBUG 12] All imports completed');
 
+// Track if app is quitting (to distinguish close button from quit)
+let isQuitting = false;
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 // if (started) {
 //   app.quit();
@@ -144,6 +147,15 @@ const createWindow = () => {
     mainWindow?.show();
   });
 
+  // Intercept close event to hide window instead of closing app
+  mainWindow.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault();
+      mainWindow?.hide();
+      logger.info('Window hidden to tray');
+    }
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -184,6 +196,12 @@ app.on('ready', async () => {
       await downloadAndSetWallpaper();
     });
 
+    // 5. Setup show window handler (for tray menu items)
+    app.on('show-window', () => {
+      logger.info('Show window triggered from tray');
+      createWindow();
+    });
+
     logger.info('Application started successfully');
   } catch (error) {
     logger.error('Failed to start application', error as Error);
@@ -218,10 +236,8 @@ ipcMain.handle('update-config', async (_, config) => {
 
 // Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', () => {
-  // On macOS, keep app running in background
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  // Keep app running in background - user must quit via tray menu
+  // On macOS, it's common to keep app running even without windows
 });
 
 app.on('activate', () => {
@@ -233,6 +249,7 @@ app.on('activate', () => {
 });
 
 app.on('before-quit', () => {
+  isQuitting = true;
   logger.info('Application quitting...');
   trayManager.destroy();
 });
