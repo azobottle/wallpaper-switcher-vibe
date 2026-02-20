@@ -12,12 +12,14 @@ type ScheduledTask = {
 class Scheduler {
   private jobs: ScheduledTask[] = [];
   private scheduledCallback: ScheduledCallback | null = null;
+  private cleanupCallback: (() => void) | null = null;
 
   /**
    * Initialize scheduler with callback function
    */
-  initialize(callback: ScheduledCallback): void {
+  initialize(callback: ScheduledCallback, cleanupCallback?: () => void): void {
     this.scheduledCallback = callback;
+    this.cleanupCallback = cleanupCallback || null;
     this.restartJobs();
   }
 
@@ -79,6 +81,35 @@ class Scheduler {
         logger.error(`Failed to create job for time: ${time}`, error as Error);
       }
     });
+
+    // Create daily cleanup job
+    const cleanupTime = configManager.get('cleanupTime');
+    if (cleanupTime) {
+      const cleanupCronPattern = this.timeToCronPattern(cleanupTime);
+      try {
+        const cleanupTask = cron.schedule(
+          cleanupCronPattern,
+          () => {
+            logger.info(`Daily cleanup task triggered at ${cleanupTime}`);
+            if (this.cleanupCallback) {
+              try {
+                this.cleanupCallback();
+              } catch (error) {
+                logger.error(`Error in daily cleanup task`, error as Error);
+              }
+            }
+          },
+          {
+            scheduled: true
+          }
+        );
+
+        this.jobs.push(cleanupTask);
+        logger.info(`Scheduled cleanup job created for time: ${cleanupTime} (${cleanupCronPattern})`);
+      } catch (error) {
+        logger.error(`Failed to create cleanup job`, error as Error);
+      }
+    }
 
     logger.info(`Scheduler initialized with ${this.jobs.length} jobs`);
   }

@@ -191,8 +191,13 @@ app.on('ready', async () => {
     // 1. Run initial download on startup
     await downloadAndSetWallpaper();
 
-    // 2. Initialize scheduler
-    scheduler.initialize(downloadAndSetWallpaper);
+    // 2. Initialize scheduler with download callback and cleanup callback
+    const dailyCleanup = () => {
+      const maxCount = configManager.get('maxHistoryCount');
+      logger.info(`Running daily cleanup: maxHistoryCount=${maxCount}`);
+      imageManager.cleanupOldHistory(maxCount);
+    };
+    scheduler.initialize(downloadAndSetWallpaper, dailyCleanup);
     logger.info(`Scheduler initialized with ${scheduler.getJobCount()} jobs`);
 
     // 3. Create tray icon
@@ -237,8 +242,8 @@ ipcMain.handle('get-config', async () => {
 ipcMain.handle('update-config', async (_, config) => {
   configManager.update(config);
 
-  // Restart scheduler if schedule times changed
-  if (config.scheduleTimes) {
+  // Restart scheduler if schedule times or cleanup time changed
+  if (config.scheduleTimes || config.cleanupTime) {
     scheduler.restartJobs();
     logger.info('Scheduler restarted with new schedule');
   }
@@ -251,6 +256,12 @@ ipcMain.handle('update-config', async (_, config) => {
       name: 'Bing Wallpaper Switcher'
     });
     logger.info(`Auto-start ${config.autoStart ? 'enabled' : 'disabled'}`);
+  }
+
+  // Clean up old history if maxHistoryCount changed
+  if (config.maxHistoryCount !== undefined) {
+    imageManager.cleanupOldHistory(config.maxHistoryCount);
+    logger.info(`History cleaned to max ${config.maxHistoryCount} records`);
   }
 
   return { success: true };

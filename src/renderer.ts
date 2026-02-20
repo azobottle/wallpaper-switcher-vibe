@@ -27,6 +27,8 @@ class WallpaperApp {
   private saveSettingsBtn: HTMLElement;
   private cancelSettingsBtn: HTMLElement;
   private addScheduleBtn: HTMLElement;
+  private maxHistoryCountInput: HTMLInputElement;
+  private cleanupTimeInput: HTMLInputElement;
 
   private currentConfig: any = null;
 
@@ -44,6 +46,8 @@ class WallpaperApp {
     this.saveSettingsBtn = document.getElementById('save-settings-btn')!;
     this.cancelSettingsBtn = document.getElementById('cancel-settings-btn')!;
     this.addScheduleBtn = document.getElementById('add-schedule-btn')!;
+    this.maxHistoryCountInput = document.getElementById('max-history-count') as HTMLInputElement;
+    this.cleanupTimeInput = document.getElementById('cleanup-time') as HTMLInputElement;
 
     this.init();
   }
@@ -70,6 +74,8 @@ class WallpaperApp {
       this.regionSelect.value = this.currentConfig.region;
       this.showNotifications.checked = this.currentConfig.showNotifications;
       this.autoStart.checked = this.currentConfig.autoStart;
+      this.maxHistoryCountInput.value = this.currentConfig.maxHistoryCount.toString();
+      this.cleanupTimeInput.value = this.currentConfig.cleanupTime || '03:00';
 
       // Populate schedule times
       this.scheduleTimesDiv.innerHTML = '';
@@ -188,11 +194,20 @@ class WallpaperApp {
         return;
       }
 
+      // Validate max history count
+      const maxHistoryCount = parseInt(this.maxHistoryCountInput.value);
+      if (isNaN(maxHistoryCount) || maxHistoryCount < 1 || maxHistoryCount > 365) {
+        this.showError('Max wallpapers must be between 1 and 365');
+        return;
+      }
+
       const newConfig = {
         region: this.regionSelect.value,
         scheduleTimes: validTimes.sort(),
         showNotifications: this.showNotifications.checked,
-        autoStart: this.autoStart.checked
+        autoStart: this.autoStart.checked,
+        maxHistoryCount: maxHistoryCount,
+        cleanupTime: this.cleanupTimeInput.value
       };
 
       await window.electronAPI.updateConfig(newConfig);

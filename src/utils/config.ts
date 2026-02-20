@@ -7,7 +7,9 @@ const DEFAULT_CONFIG: AppConfig = {
   scheduleTimes: ['08:00', '16:00', '00:00'],
   region: 'en-US',
   autoStart: true,
-  showNotifications: true
+  showNotifications: true,
+  maxHistoryCount: 30,
+  cleanupTime: '03:00'  // Default: 3 AM daily
 };
 
 class ConfigManager {

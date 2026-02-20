@@ -34,4 +34,6 @@ export interface AppConfig {
   region: string;
   autoStart: boolean;
   showNotifications: boolean;
+  maxHistoryCount: number;
+  cleanupTime: string;  // Time to run daily cleanup (HH:MM format)
 }

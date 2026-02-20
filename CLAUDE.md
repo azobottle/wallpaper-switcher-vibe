@@ -68,6 +68,11 @@ npm lint              # 运行 ESLint
    - 按日期缓存图片（格式：YYYYMMDD.jpg）
    - 保存和检索图片元数据/历史
    - 检查今日壁纸是否已下载
+   - **延迟加载历史记录**：使用 `ensureHistoryLoaded()` 模式，按需从文件加载
+   - **自动清理功能**：
+     - 清理超出 `maxHistoryCount` 的旧记录
+     - 删除孤立的壁纸文件（存在磁盘但不在历史记录中）
+     - 支持定时自动清理和手动清理
 
 3. **wallpaperSetter.ts**：设置桌面壁纸
    - 使用 **Windows 原生 API**（PowerShell + SystemParametersInfo）
@@ -77,7 +82,8 @@ npm lint              # 运行 ESLint
 
 4. **scheduler.ts**：管理定时更新
    - 使用 `node-cron` 进行基于 cron 的调度
-   - 支持可配置的更新时间
+   - 支持可配置的更新时间（scheduleTimes）
+   - **定时清理任务**：每天在指定时间（cleanupTime）自动清理旧壁纸
    - 配置更改时自动重启调度器
    - 可通过 `triggerDownload()` 手动触发更新
 
@@ -91,7 +97,7 @@ npm lint              # 运行 ESLint
 
 - **configManager.ts** (`src/utils/config.ts`)：持久化配置存储
   - 将设置保存在 userData/config.json
-  - 管理：scheduleTimes、region、autoStart、showNotifications
+  - 管理：scheduleTimes、region、autoStart、showNotifications、maxHistoryCount、cleanupTime
   - 支持配置更新和调度器重启
 
 - **logger.ts** (`src/utils/logger.ts`)：日志工具
@@ -348,6 +354,54 @@ ls out/wallpaper-switcher-vibe-win32-x64/resources/assets/icon.png
 
 **参考**：参见 commit 0172d1f（最小化到托盘）
 
+### 问题：历史记录只显示最新一条（已修复）
+
+**症状**：应用重启后，历史记录只显示最新的一条记录，之前的记录丢失。
+
+**原因**：`ImageManager` 类从未调用 `loadHistory()` 方法加载已有的历史记录文件。每次应用启动后，`this.history` 都是空数组，导致历史记录丢失。
+
+**解决方案**：实现延迟加载模式（参考 `ConfigManager`）：
+- 添加 `historyLoaded` 标志位跟踪加载状态
+- 在所有访问历史记录的方法中调用 `ensureHistoryLoaded()`
+- 确保每次访问前都从文件加载最新数据
+
+**参考**：参见 commit e52321c（历史记录延迟加载）
+
+## 配置选项
+
+### scheduleTimes (string[])
+壁纸更新时间列表，格式为 "HH:MM"。
+- **默认值**：`['08:00', '16:00', '00:00']`
+- **说明**：每天在这些时间自动下载并设置新壁纸
+
+### region (string)
+Bing 壁纸地区代码。
+- **默认值**：`'en-US'`
+- **可选值**：`'en-US'`, `'zh-CN'`, `'ja-JP'`, `'en-IN'`, `'pt-BR'`, `'fr-FR'`, `'de-DE'`
+- **说明**：不同地区获取不同的每日壁纸
+
+### autoStart (boolean)
+是否开机自动启动。
+- **默认值**：`true`
+- **说明**：应用启动时隐藏到托盘，不显示窗口
+
+### showNotifications (boolean)
+是否显示壁纸更新通知。
+- **默认值**：`true`
+- **说明**：下载并设置新壁纸时显示系统通知
+
+### maxHistoryCount (number)
+最多保留的壁纸数量。
+- **默认值**：`30`
+- **范围**：`1-365`
+- **说明**：超出此数量的旧壁纸将被自动删除（包括历史记录和图片文件）
+
+### cleanupTime (string)
+每日清理时间。
+- **默认值**：`'03:00'`
+- **格式**：`"HH:MM"`
+- **说明**：每天在此时间自动清理超出限制的旧壁纸和孤立文件
+
 ## 安全注意事项
 
 - 渲染进程中禁用 Node.js 集成
@@ -363,7 +417,19 @@ ls out/wallpaper-switcher-vibe-win32-x64/resources/assets/icon.png
 ## Git 历史和重要提交
 
 ```
-[最新] - refactor: Replace wallpaper npm package with Windows native API
+[最新] - feat: Add configurable wallpaper history management
+         - 添加 maxHistoryCount 配置（1-365张壁纸）
+         - 添加 cleanupTime 配置（定时清理时间）
+         - 实现定时自动清理任务（每日）
+         - 自动清理孤立文件（存在磁盘但不在历史记录中）
+         - 删除超出限制的旧壁纸文件和记录
+         - 修复历史记录只显示一条的问题（延迟加载）
+
+e52321c - fix: Implement lazy loading for wallpaper history persistence
+         - 添加延迟加载模式确保历史记录正确加载
+         - 修复应用重启后历史记录丢失的问题
+
+bd3d287 - refactor: Replace wallpaper npm package with Windows native API
          - 移除 wallpaper 依赖，使用 PowerShell + SystemParametersInfo
          - 修复托盘图标打包问题（添加 extraResource 配置）
          - 实现开机启动功能（系统托盘设置界面）
@@ -373,8 +439,12 @@ ls out/wallpaper-switcher-vibe-win32-x64/resources/assets/icon.png
 134f384 - feat: Initial implementation of Bing Wallpaper Switcher
 ```
 
-**最新重构（当前版本）**：
-- ✅ 完全移除 `wallpaper` npm 包依赖
+**最新功能（当前版本）**：
+- ✅ **可配置历史记录管理**：用户可设置保留 1-365 张壁纸
+- ✅ **定时自动清理**：每天在指定时间自动清理旧壁纸
+- ✅ **孤立文件清理**：自动删除存在磁盘但不在历史记录中的文件
+- ✅ **延迟加载历史记录**：修复历史记录丢失问题
+- ✅ **完全移除 `wallpaper` npm 包依赖**
 - ✅ 使用 Windows 原生 API（PowerShell + SystemParametersInfo）
 - ✅ 修复托盘图标打包路径（开发/生产环境适配）
 - ✅ 实现开机启动功能（通过 Electron setLoginItemSettings API）

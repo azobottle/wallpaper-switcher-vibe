@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { BingImage, WallpaperHistory } from '../types';
 import { logger } from '../utils/logger';
+import { configManager } from '../utils/config';
 
 class ImageManager {
   private wallpapersDir: string | null = null;
@@ -124,9 +125,10 @@ class ImageManager {
     // Add new record at the beginning
     this.history.unshift(record);
 
-    // Keep only last 30 records
-    if (this.history.length > 30) {
-      this.history = this.history.slice(0, 30);
+    // Keep only last N records (from config)
+    const maxCount = configManager.get('maxHistoryCount');
+    if (this.history.length > maxCount) {
+      this.history = this.history.slice(0, maxCount);
     }
 
     this.saveHistory();
@@ -147,6 +149,95 @@ class ImageManager {
   getLatestWallpaper(): WallpaperHistory | null {
     this.ensureHistoryLoaded();
     return this.history.length > 0 ? this.history[0] : null;
+  }
+
+  /**
+   * Clean up old history records to keep only the latest N records
+   */
+  cleanupOldHistory(maxCount: number): void {
+    this.ensureHistoryLoaded();
+
+    const originalLength = this.history.length;
+    logger.info(`cleanupOldHistory called: maxCount=${maxCount}, current history length=${originalLength}`);
+
+    if (this.history.length > maxCount) {
+      // Get records to delete (the oldest ones beyond maxCount)
+      const recordsToDelete = this.history.slice(maxCount);
+      logger.info(`Records to delete: ${recordsToDelete.length}, dates: ${recordsToDelete.map(r => r.date).join(', ')}`);
+
+      // Delete the actual wallpaper files
+      let deletedFiles = 0;
+      let missingFiles = 0;
+      recordsToDelete.forEach(record => {
+        logger.info(`Checking file: ${record.localPath}, exists: ${fs.existsSync(record.localPath)}`);
+        try {
+          if (fs.existsSync(record.localPath)) {
+            fs.unlinkSync(record.localPath);
+            deletedFiles++;
+            logger.info(`Deleted old wallpaper file: ${record.localPath}`);
+          } else {
+            missingFiles++;
+            logger.warn(`Wallpaper file not found: ${record.localPath}`);
+          }
+        } catch (error) {
+          logger.error(`Failed to delete wallpaper file: ${record.localPath}`, error as Error);
+        }
+      });
+
+      // Now update history array
+      this.history = this.history.slice(0, maxCount);
+      this.saveHistory();
+
+      logger.info(`Cleaned up ${originalLength - this.history.length} old history records, ${deletedFiles} files deleted, ${missingFiles} files not found`);
+    } else {
+      logger.info(`No cleanup needed: history length (${this.history.length}) <= maxCount (${maxCount})`);
+    }
+
+    // Also clean up orphaned files (files in wallpapers dir but not in history)
+    this.cleanupOrphanedFiles();
+  }
+
+  /**
+   * Clean up orphaned wallpaper files that exist on disk but not in history
+   */
+  private cleanupOrphanedFiles(): void {
+    try {
+      const wallpapersDir = this.getWallpapersDir();
+      if (!fs.existsSync(wallpapersDir)) {
+        return;
+      }
+
+      // Get all files in wallpapers directory
+      const allFiles = fs.readdirSync(wallpapersDir).filter(f => f.endsWith('.jpg'));
+      logger.info(`Found ${allFiles.length} wallpaper files in directory`);
+
+      // Get set of files that are in history
+      const filesInHistory = new Set(this.history.map(r => path.basename(r.localPath)));
+      logger.info(`Files in history: ${filesInHistory.size}`);
+
+      // Find orphaned files
+      const orphanedFiles = allFiles.filter(f => !filesInHistory.has(f));
+      logger.info(`Found ${orphanedFiles.length} orphaned files: ${orphanedFiles.join(', ')}`);
+
+      // Delete orphaned files
+      let deletedCount = 0;
+      orphanedFiles.forEach(file => {
+        const filePath = path.join(wallpapersDir, file);
+        try {
+          fs.unlinkSync(filePath);
+          deletedCount++;
+          logger.info(`Deleted orphaned wallpaper file: ${filePath}`);
+        } catch (error) {
+          logger.error(`Failed to delete orphaned file: ${filePath}`, error as Error);
+        }
+      });
+
+      if (deletedCount > 0) {
+        logger.info(`Cleaned up ${deletedCount} orphaned wallpaper files`);
+      }
+    } catch (error) {
+      logger.error('Failed to cleanup orphaned files', error as Error);
+    }
   }
 }
 
