@@ -224,7 +224,10 @@ ipcMain.handle('download-now', async () => {
 });
 
 ipcMain.handle('get-history', async () => {
-  return imageManager.getHistory();
+  const history = imageManager.getHistory();
+  logger.info(`IPC: Returning ${history.length} history records to renderer`);
+  console.log(`IPC: Returning ${history.length} history records:`, history.map(h => h.date));
+  return history;
 });
 
 ipcMain.handle('get-config', async () => {

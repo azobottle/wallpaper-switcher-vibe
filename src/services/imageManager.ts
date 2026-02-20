@@ -9,6 +9,7 @@ class ImageManager {
   private historyFilePath: string | null = null;
   private history: WallpaperHistory[] = [];
   private initialized = false;
+  private historyLoaded = false;
 
   private getWallpapersDir(): string {
     if (!this.wallpapersDir) {
@@ -38,6 +39,8 @@ class ImageManager {
   }
 
   private loadHistory(): void {
+    if (this.historyLoaded) return;  // Avoid duplicate loading
+
     try {
       const historyPath = this.getHistoryFilePath();
       if (fs.existsSync(historyPath)) {
@@ -48,6 +51,14 @@ class ImageManager {
     } catch (error) {
       logger.error('Failed to load wallpaper history', error as Error);
       this.history = [];
+    } finally {
+      this.historyLoaded = true;
+    }
+  }
+
+  private ensureHistoryLoaded(): void {
+    if (!this.historyLoaded) {
+      this.loadHistory();
     }
   }
 
@@ -64,6 +75,7 @@ class ImageManager {
    * Check if wallpaper already exists for a given date
    */
   exists(enddate: string): boolean {
+    this.ensureHistoryLoaded();
     return this.history.some(record => record.date === enddate);
   }
 
@@ -71,6 +83,7 @@ class ImageManager {
    * Get local path for a wallpaper by date
    */
   getWallpaperPath(enddate: string): string | null {
+    this.ensureHistoryLoaded();
     const record = this.history.find(r => r.date === enddate);
     return record ? record.localPath : null;
   }
@@ -96,6 +109,7 @@ class ImageManager {
    * Save wallpaper metadata to history
    */
   saveImageMetadata(bingImage: BingImage, localPath: string, region: string): void {
+    this.ensureHistoryLoaded();
     const record: WallpaperHistory = {
       date: bingImage.enddate,
       localPath: localPath,
@@ -123,6 +137,7 @@ class ImageManager {
    * Get wallpaper history
    */
   getHistory(): WallpaperHistory[] {
+    this.ensureHistoryLoaded();
     return [...this.history];
   }
 
@@ -130,6 +145,7 @@ class ImageManager {
    * Get the latest wallpaper
    */
   getLatestWallpaper(): WallpaperHistory | null {
+    this.ensureHistoryLoaded();
     return this.history.length > 0 ? this.history[0] : null;
   }
 }
