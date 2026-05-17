@@ -1,6 +1,6 @@
 console.log('[DEBUG 1] Starting imports...');
 
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, powerMonitor } from 'electron';
 console.log('[DEBUG 2] Electron imported');
 
 import path from 'node:path';
@@ -214,6 +214,17 @@ app.on('ready', async () => {
     app.on('show-window', () => {
       logger.info('Show window triggered from tray');
       createWindow();
+    });
+
+    // 6. Setup power monitor for system resume (唤醒后刷新壁纸)
+    powerMonitor.on('resume', async () => {
+      logger.info('System resumed from sleep/lock, checking wallpaper...');
+      await downloadAndSetWallpaper();
+    });
+
+    powerMonitor.on('unlock-screen', async () => {
+      logger.info('Screen unlocked, checking wallpaper...');
+      await downloadAndSetWallpaper();
     });
 
     logger.info('Application started successfully');
