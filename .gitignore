@@ -90,3 +90,10 @@ typings/
 
 # Electron-Forge
 out/
+
+# Electron binary cache
+electron-v*.zip
+
+# Local configs
+opencode.json
+.claude/settings.local.json
